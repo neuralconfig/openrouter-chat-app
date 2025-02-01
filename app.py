@@ -37,7 +37,7 @@ def chat():
     }
 
     payload = {
-        'model': 'anthropic/claude-3-haiku-20240307',
+        'model': 'anthropic/claude-3.5-haiku-20241022:beta',
         'messages': [
             {'role': 'user', 'content': user_message}
         ],
