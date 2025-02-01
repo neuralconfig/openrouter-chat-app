@@ -11,6 +11,8 @@ class TestChatApp(unittest.TestCase):
         self.client = app.test_client()
         # Ensure we have a test API key
         os.environ['OPENROUTER_API_KEY'] = 'test_key'
+        # Initialize rate limits in config
+        app.config['rate_limits'] = {}
 
     def test_home_route(self):
         """Test the home route returns HTML"""
@@ -91,16 +93,22 @@ class TestChatApp(unittest.TestCase):
 
     def test_rate_limiting(self):
         """Test rate limiting functionality"""
-        # Test multiple requests
-        for _ in range(51):  # Exceed rate limit (50 requests/hour)
-            response = self.client.post('/chat',
-                                      data=json.dumps({'message': 'Test'}),
-                                      content_type='application/json')
-        
-        # The last request should be rate limited
-        self.assertEqual(response.status_code, 429)
-        data = json.loads(response.data)
-        self.assertIn('Rate limit exceeded', data['error'])
+        # Temporarily disable testing mode to test rate limiting
+        app.config['TESTING'] = False
+        try:
+            # Test multiple requests
+            for _ in range(51):  # Exceed rate limit (50 requests/hour)
+                response = self.client.post('/chat',
+                                          data=json.dumps({'message': 'Test'}),
+                                          content_type='application/json')
+            
+            # The last request should be rate limited
+            self.assertEqual(response.status_code, 429)
+            data = json.loads(response.data)
+            self.assertIn('Rate limit exceeded', data['error'])
+        finally:
+            # Restore testing mode
+            app.config['TESTING'] = True
 
 if __name__ == '__main__':
     unittest.main()

@@ -19,31 +19,32 @@ MAX_MESSAGE_LENGTH = 2000
 RATE_LIMIT_MESSAGES = 50  # messages
 RATE_LIMIT_WINDOW = 3600  # seconds (1 hour)
 
-# Rate limiting storage
-rate_limits = {}
-
 def rate_limit(f):
     """Rate limiting decorator for API endpoints"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Get client IP
-        ip = request.remote_addr
-        current_time = time.time()
-        
-        # Initialize or clean up old rate limit data
-        if ip not in rate_limits:
-            rate_limits[ip] = {'count': 0, 'window_start': current_time}
-        elif current_time - rate_limits[ip]['window_start'] >= RATE_LIMIT_WINDOW:
-            rate_limits[ip] = {'count': 0, 'window_start': current_time}
-        
-        # Check rate limit
-        if rate_limits[ip]['count'] >= RATE_LIMIT_MESSAGES:
-            return jsonify({
-                'error': 'Rate limit exceeded. Please try again later.'
-            }), 429
-        
-        # Increment counter
-        rate_limits[ip]['count'] += 1
+        if not app.config.get('TESTING', False):
+            # Get client IP
+            ip = request.remote_addr
+            current_time = time.time()
+            
+            if 'rate_limits' not in app.config:
+                app.config['rate_limits'] = {}
+            
+            # Initialize or clean up old rate limit data
+            if ip not in app.config['rate_limits']:
+                app.config['rate_limits'][ip] = {'count': 0, 'window_start': current_time}
+            elif current_time - app.config['rate_limits'][ip]['window_start'] >= RATE_LIMIT_WINDOW:
+                app.config['rate_limits'][ip] = {'count': 0, 'window_start': current_time}
+            
+            # Check rate limit
+            if app.config['rate_limits'][ip]['count'] >= RATE_LIMIT_MESSAGES:
+                return jsonify({
+                    'error': 'Rate limit exceeded. Please try again later.'
+                }), 429
+            
+            # Increment counter
+            app.config['rate_limits'][ip]['count'] += 1
         return f(*args, **kwargs)
     return decorated_function
 
@@ -126,7 +127,7 @@ def chat():
             OPENROUTER_URL,
             headers=headers,
             json=payload,
-            timeout=30  # Add timeout
+            timeout=30
         )
         response.raise_for_status()
         
@@ -145,6 +146,12 @@ def chat():
     except requests.exceptions.RequestException as e:
         return jsonify({
             'error': str(e),
+            'status': 'error'
+        }), 500
+    except Exception as e:
+        # Catch any other exceptions
+        return jsonify({
+            'error': 'An unexpected error occurred',
             'status': 'error'
         }), 500
 
