@@ -29,11 +29,12 @@ def chat():
     if not user_message:
         return jsonify({'error': 'No message provided'}), 400
 
+    host_url = request.host_url.rstrip('/')  # Get the current host URL
     headers = {
         'Authorization': f'Bearer {OPENROUTER_API_KEY}',
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:5000',  # Required by OpenRouter
-        'OpenAI-Organization': 'http://localhost:5000'  # Required by OpenRouter
+        'HTTP-Referer': host_url,  # Required by OpenRouter
+        'OpenAI-Organization': host_url  # Required by OpenRouter
     }
 
     payload = {
@@ -57,4 +58,4 @@ def chat():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
