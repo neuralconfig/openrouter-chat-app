@@ -33,13 +33,17 @@ def chat():
         'Authorization': f'Bearer {OPENROUTER_API_KEY}',
         'Content-Type': 'application/json',
         'HTTP-Referer': 'http://localhost:5000',  # Required by OpenRouter
+        'OpenAI-Organization': 'http://localhost:5000'  # Required by OpenRouter
     }
 
     payload = {
-        'model': 'anthropic/claude-instant-v1',  # Using Claude Haiku model
+        'model': 'anthropic/claude-3-haiku-20240307',
         'messages': [
             {'role': 'user', 'content': user_message}
-        ]
+        ],
+        'max_tokens': 1000,
+        'temperature': 0.7,
+        'route': 'fallback'
     }
 
     try:
